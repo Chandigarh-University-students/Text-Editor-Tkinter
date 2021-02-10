@@ -369,9 +369,6 @@ root.bind('<Control-Key-v>', paste_text)
 root.bind('<Control-A>', select_all)
 root.bind('<Control-a>', select_all)
 
-# fee = "John Elder"
-# my_label = Label(root, text=fee[:-1]).pack()
-
 # Create Buttons
 
 # Bold Button
