@@ -1,12 +1,16 @@
 from tkinter import *
+from difflib import SequenceMatcher
 from tkinter import filedialog
+from tkinter import messagebox
 from tkinter import font
 from tkinter import colorchooser
 from gtts import gTTS
+import pyttsx3
 from PIL import Image
 import os, sys
 #import win32print
 #import win32api
+
 splash_screen=Tk()
 app_width = 430
 app_height = 430
@@ -127,6 +131,18 @@ def mainWindow():
             root.title(f'{name} - TextPad!')
         else:
             save_as_file()
+
+    # Compare files
+    def compare_files():
+        file1 = filedialog.askopenfilename(initialdir="C:/gui/", title="Choose File", filetypes=(
+        ("Text Files", "*.txt"), ("HTML Files", "*.html"), ("Python Files", "*.py"), ("All Files", "*.*")))
+
+        text_file1 = open(file1, 'r')
+
+        file1_data = text_file1.read()
+        file2_data = my_text.get(1.0,END)
+        similarity = SequenceMatcher(None, file1_data, file2_data).ratio()
+        messagebox.showinfo("Plagiarism", f"The contents are {similarity * 100:.3f}% common.")
 
 
     # Cut Text
@@ -323,14 +339,14 @@ def mainWindow():
     def text_to_speech():
         mytext = my_text.get(1.0,END)
         # Language in which you want to convert
-        language = 'en'
-        myobj = gTTS(text=mytext, lang=language, slow=False)
+        # init function to get an engine instance for the speech synthesis
+        engine = pyttsx3.init()
 
-        # Saving the converted audio in a mp3 file named
-        myobj.save("welcome.mp3")
+        # say method on the engine that passing input text to be spoken
+        engine.say(mytext)
 
-        # Playing the converted file
-        os.system("start welcome.mp3")
+        # run and wait method, it processes the voice commands.
+        engine.runAndWait()
 
     # Create a toolbar frame
     toolbar_frame = Frame(root)
@@ -371,6 +387,7 @@ def mainWindow():
     file_menu.add_command(label="Save As...", command=save_as_file)
     file_menu.add_separator()
     file_menu.add_command(label="Print File", command=print_file)
+    file_menu.add_command(label="Compare File", command=compare_files)
     file_menu.add_separator()
     file_menu.add_command(label="Exit", command=root.quit)
 
@@ -417,9 +434,6 @@ def mainWindow():
     root.bind('<Control-A>', select_all)
     root.bind('<Control-a>', select_all)
 
-    # fee = "John Elder"
-    # my_label = Label(root, text=fee[:-1]).pack()
-
     # Create Buttons
 
     # Bold Button
@@ -440,7 +454,7 @@ def mainWindow():
     color_text_button = Button(toolbar_frame, text="Text Color", command=text_color,font=("Helvetica", 10,"bold"),)
     color_text_button.grid(row=0, column=4, padx=5, pady=5)
 
-    #theme button
+    # Theme button
     global light_img
     light_img=PhotoImage(file="icons/light.png")
     theme_button=Button(toolbar_frame,image=light_img,borderwidth=1,cursor="hand2")
@@ -449,7 +463,6 @@ def mainWindow():
 img=PhotoImage(file="icons/enter2.png")
 enterButton= Button(splashFrame,image=img,font=("Helvetica", 16,"bold"),borderwidth=0,relief=GROOVE,bg="#29648A",command=mainWindow,cursor="hand2")
 enterButton.pack(side=BOTTOM,anchor=S,pady=10)
-#splash_screen.after(8000, mainWindow)
 
 mainloop()
 
