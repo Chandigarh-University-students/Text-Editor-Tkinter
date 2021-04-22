@@ -1,392 +1,665 @@
 from tkinter import *
+import tkinter
+import os
+import tkinter.filedialog
+import tkinter.messagebox
+from tkinter import messagebox
+from difflib import SequenceMatcher
 from tkinter import filedialog
+import pyttsx3
+import time
+from tkinter.font import Font, families
 from tkinter import font
-from tkinter import colorchooser
-import os, sys
-#import win32print
-#import win32api
-
-root = Tk()
-root.title('Untitled - TextPad!')
-root.iconbitmap('icon.ico')
-root.geometry("1200x710")
-
-# Set variable for open file name
-global open_status_name
-open_status_name = False
-
-global selected
-selected = False
+from PIL import Image, ImageTk
+import cv2 as cv
 
 
-# Create New File Function
-def new_file():
-    # Delete previous text
-    my_text.delete("1.0", END)
-    # Update status bars
-    root.title('New File - TextPad!')
-    status_bar.config(text="New File        ")
+#all codes goes here
 
-    global open_status_name
-    open_status_name = False
+#splash screen
+splash_screen=Tk()
+app_width = 430
+app_height = 430
 
+screen_width = splash_screen.winfo_screenwidth()
+screen_height = splash_screen.winfo_screenheight()
 
-# Open Files
-def open_file():
-    # Delete previous text
-    my_text.delete("1.0", END)
+x = (screen_width / 2) - (app_width / 2)
+y = (screen_height / 2 ) - (app_height / 2)
 
-    # Grab Filename
-    text_file = filedialog.askopenfilename(initialdir="C:/gui/", title="Open File", filetypes=(
-    ("Text Files", "*.txt"), ("HTML Files", "*.html"), ("Python Files", "*.py"), ("All Files", "*.*")))
-
-    # Check to see if there is a file name
-    if text_file:
-        # Make filename global so we can access it later
-        global open_status_name
-        open_status_name = text_file
-
-    # Update Status bars
-    name = text_file
-    status_bar.config(text=f'{name}        ')
-    name = name.replace("C:/gui/", "")
-    root.title(f'{name} - TextPad!')
-
-    # Open the file
-    text_file = open(text_file, 'r')
-    stuff = text_file.read()
-    # Add file to textbox
-    my_text.insert(END, stuff)
-    # Close the opened file
-    text_file.close()
+splash_screen.geometry(f'{app_width}x{app_height}+{int(x)}+{int(y)}')
+#splash_screen.geometry("430x430")
+splash_screen.overrideredirect(True)
+splashfile=PhotoImage(file="splash.png")
+splashFrame=Label(splash_screen,width=400,height=400,image=splashfile)
+splashFrame.place(x=0,y=0,relwidth=1,relheight=1)
 
 
-# Save As File
-def save_as_file():
-    text_file = filedialog.asksaveasfilename(defaultextension=".*", initialdir="C:/gui/", title="Save File", filetypes=(
-    ("Text Files", "*.txt"), ("HTML Files", "*.html"), ("Python Files", "*.py"), ("All Files", "*.*")))
-    if text_file:
-        # Update Status Bars
-        name = text_file
-        global open_status_name
-        open_status_name=name
-        status_bar.config(text=f'Saved: {name}        ')
-        name = name.replace("C:/gui/", "")
-        root.title(f'{name} - TextPad!')
+def mainWindow():
+    splash_screen.destroy()
+    root = Tk()
+    root.iconbitmap('icon.ico')
 
-        # Save the file
-        text_file = open(text_file, 'w')
-        text_file.write(my_text.get(1.0, END))
-        # Close the file
-        text_file.close()
+    PROGRAM_NAME = "TextEditor"
+    root.title(PROGRAM_NAME)
+    file_name = None
+    _width = 1200
+    _height = 600
 
+    root_width = root.winfo_screenwidth()
+    root_height = root.winfo_screenheight()
 
-# Save File
-def save_file():
-    global open_status_name
-    if open_status_name:
-        # Save the file
-        text_file = open(open_status_name, 'w')
-        text_file.write(my_text.get(1.0, END))
-        # Close the file
-        text_file.close()
-        # Put status update or popup code
-        status_bar.config(text=f'Saved: {open_status_name}        ')
-        name = open_status_name
-        name = name.replace("C:/gui/", "")
-        root.title(f'{name} - TextPad!')
-    else:
-        save_as_file()
+    x = (root_width / 2) - (_width / 2)
+    y = (root_height / 2) - (_height / 2)
 
+    root.geometry(f'{_width}x{_height}+{int(x)}+{int(y)}')
+    #root.geometry('800x400')
+    #FILE MENU
+    def new_file(event=None):
+        root.title("Untitled")
+        global file_name
+        file_name = None
+        content_text.delete(1.0, END)
+        on_content_changed()
 
-# Cut Text
-def cut_text(e):
-    global selected
-    # Check to see if keyboard shortcut used
-    if e:
-        selected = root.clipboard_get()
-    else:
-        if my_text.selection_get():
-            # Grab selected text from text box
-            selected = my_text.selection_get()
-            # Delete Selected Text from text box
-            my_text.delete("sel.first", "sel.last")
-            # Clear the clipboard then append
-            root.clipboard_clear()
-            root.clipboard_append(selected)
+    def open_file(event=None):
+        input_file_name = tkinter.filedialog.askopenfilename(defaultextension=".txt",filetypes=[("All Files", "*.*"), ("Text Documents", "*.txt"),("HTML", "*.html"),("CSS", "*.css"),("JavaScript", "*.js")])
+        if input_file_name:
+            global file_name
+            file_name = input_file_name
+            root.title('{} - {}'.format(os.path.basename(file_name), PROGRAM_NAME))
+            content_text.delete(1.0, END)
+            with open(file_name) as _file:
+                content_text.insert(1.0, _file.read())
+
+        on_content_changed()
+
+    def write_to_file(file_name):
+        try:
+            content = content_text.get(1.0, 'end')
+            with open(file_name, 'w') as the_file:
+                the_file.write(content)
+        except IOError:
+            pass
 
 
-# Copy Text
-def copy_text(e):
-    global selected
-    # check to see if we used keyboard shortcuts
-    if e:
-        selected = root.clipboard_get()
-
-    if my_text.selection_get():
-        # Grab selected text from text box
-        selected = my_text.selection_get()
-        # Clear the clipboard then append
-        root.clipboard_clear()
-        root.clipboard_append(selected)
+    def save_as(event=None):
+        input_file_name = tkinter.filedialog.asksaveasfilename(defaultextension=".txt",filetypes=[("All Files", "*.*"), ("Text Documents", "*.txt"),("HTML", "*.html"),("CSS", "*.css"),("JavaScript", "*.js")])
+        if input_file_name:
+            global file_name
+            file_name = input_file_name
+            write_to_file(file_name)
+            root.title('{} - {}'.format(os.path.basename(file_name), PROGRAM_NAME))
+        return "break"
 
 
-# Paste Text
-def paste_text(e):
-    global selected
-    # Check to see if keyboard shortcut used
-    if e:
-        selected = root.clipboard_get()
-    else:
-        if selected:
-            position = my_text.index(INSERT)
-            my_text.insert(position, selected)
-
-
-# Bold Text
-def bold_it():
-    # Create our font
-    bold_font = font.Font(my_text, my_text.cget("font"))
-    bold_font.configure(weight="bold")
-
-    # Configure a tag
-    my_text.tag_configure("bold", font=bold_font)
-
-    # Define Current tags
-    current_tags = my_text.tag_names("sel.first")
-
-    # If statment to see if tag has been set
-    if "bold" in current_tags:
-        my_text.tag_remove("bold", "sel.first", "sel.last")
-    else:
-        my_text.tag_add("bold", "sel.first", "sel.last")
-
-
-# Italics Text
-def italics_it():
-    # Create our font
-    italics_font = font.Font(my_text, my_text.cget("font"))
-    italics_font.configure(slant="italic")
-
-    # Configure a tag
-    my_text.tag_configure("italic", font=italics_font)
-
-    # Define Current tags
-    current_tags = my_text.tag_names("sel.first")
-
-    # If statment to see if tag has been set
-    if "italic" in current_tags:
-        my_text.tag_remove("italic", "sel.first", "sel.last")
-    else:
-        my_text.tag_add("italic", "sel.first", "sel.last")
-
-
-# Change Selected Text Color
-def text_color():
-    # Pick a color
-    my_color = colorchooser.askcolor()[1]
-    if my_color:
-        # Create our font
-        color_font = font.Font(my_text, my_text.cget("font"))
-
-        # Configure a tag
-        my_text.tag_configure("colored", font=color_font, foreground=my_color)
-
-        # Define Current tags
-        current_tags = my_text.tag_names("sel.first")
-
-        # If statment to see if tag has been set
-        if "colored" in current_tags:
-            my_text.tag_remove("colored", "sel.first", "sel.last")
+    def save(event=None):
+        global file_name
+        if not file_name:
+            save_as()
         else:
-            my_text.tag_add("colored", "sel.first", "sel.last")
+            write_to_file(file_name)
+        return "break"
+
+    # Compare files
+    def compare_files():
+        file1 = filedialog.askopenfilename(initialdir="C:/gui/", title="Choose File", filetypes=(
+        ("Text Files", "*.txt"), ("HTML Files", "*.html"), ("Python Files", "*.py"), ("All Files", "*.*")))
+
+        text_file1 = open(file1, 'r')
+
+        file1_data = text_file1.read()
+        file2_data = content_text.get(1.0,END)
+        similarity = SequenceMatcher(None, file1_data, file2_data).ratio()
+        messagebox.showinfo("Plagiarism", f"The contents are {similarity * 100:.3f}% common.")
+
+    #EDIT MENU
+    def cut():
+        content_text.event_generate("<<Cut>>")
+        on_content_changed()
+        return "break"
+    def copy():
+        content_text.event_generate("<<Copy>>")
+        on_content_changed()
+        return "break"
+    def paste():
+        content_text.event_generate("<<Paste>>")
+        on_content_changed()
+        return "break"
+
+    def undo():
+        content_text.event_generate("<<Undo>>")
+        on_content_changed()
+        return "break"
+
+    def redo(event=None):
+        content_text.event_generate("<<Redo>>")
+        on_content_changed()
+        return "break"
+
+    def selectall(event=None):
+        content_text.tag_add('sel','1.0','end')
+        return "break"
 
 
-# Change bg color
-def bg_color():
-    my_color = colorchooser.askcolor()[1]
-    if my_color:
-        my_text.config(bg=my_color)
+    def find_text(event=None):
+        search_toplevel = Toplevel(root)
+        search_toplevel.title('Find Text')
+        search_toplevel.transient(root)
+        search_toplevel.resizable(False, False)
+        Label(search_toplevel, text="Find All:").grid(row=0, column=0, sticky='e')
+        search_entry_widget = Entry(search_toplevel, width=25)
+        search_entry_widget.grid(row=0, column=1, padx=2, pady=2, sticky='we')
+        search_entry_widget.focus_set()
+        ignore_case_value = IntVar()
+        Checkbutton(search_toplevel, text='Ignore Case', variable=ignore_case_value).grid(row=1, column=1, sticky='e', padx=2, pady=2)
+        Button(search_toplevel, text="Find All", underline=0,
+               command=lambda: search_output(
+                   search_entry_widget.get(), ignore_case_value.get(),
+                   content_text, search_toplevel, search_entry_widget)
+               ).grid(row=0, column=2, sticky='e' + 'w', padx=2, pady=2)
+
+        def close_search_window():
+            content_text.tag_remove('match', '1.0', END)
+            search_toplevel.destroy()
+        search_toplevel.protocol('WM_DELETE_WINDOW', close_search_window)
+        return "break"
+
+    def search_output(needle,if_ignore_case, content_text, search_toplevel, search_box):
+        content_text.tag_remove('match','1.0', END)
+        matches_found=0
+        if needle:
+            start_pos = '1.0'
+            while True:
+                start_pos = content_text.search(needle,start_pos, nocase=if_ignore_case, stopindex=END)
+                if not start_pos:
+                    break
+
+                end_pos = '{} + {}c'. format(start_pos, len(needle))
+                content_text.tag_add('match', start_pos, end_pos)
+                matches_found +=1
+                start_pos = end_pos
+            content_text.tag_config('match', background='yellow', foreground='blue')
+        search_box.focus_set()
+        search_toplevel.title('{} matches found'.format(matches_found))
+
+    #function for text to speech
+    def text_to_speech():
+        mytext = content_text.get(1.0,END)
+        # Language in which you want to convert
+        # init function to get an engine instance for the speech synthesis
+        engine = pyttsx3.init()
+
+        # say method on the engine that passing input text to be spoken
+        engine.say(mytext)
+
+        # run and wait method, it processes the voice commands.
+        engine.runAndWait()
+
+    def importAudioFlie():
+
+        # Create a string
+        string = content_text.get(1.0,END)
+
+        # Initialize the Pyttsx3 engine
+        engine = pyttsx3.init()
+
+        # We can use file extension as mp3 and wav, both will work
+        engine.save_to_file(string, 'speech.mp3')
+
+        # Wait until above command is not finished.
+        engine.runAndWait()
+        messagebox.showinfo("Audio Imported", "Your audio file has been imported.")
 
 
-# Change ALL Text Color
-def all_text_color():
-    my_color = colorchooser.askcolor()[1]
-    if my_color:
-        my_text.config(fg=my_color)
+    def addDate():
+        full_date = time.localtime()
+        day = str(full_date.tm_mday)
+        month = str(full_date.tm_mon)
+        year = str(full_date.tm_year)
+        date = day + '/' + month + '/' + year
+        content_text.insert(INSERT, date, "a")
+
+    # Bold Text
+    def bold_it(e):
+        # Create our font
+        try:
+            if e:
+                content_text.event_generate("<<Bold>>")
+                on_content_changed()
+                return "break"
+            bold_font = font.Font(content_text, content_text.cget("font"))
+            bold_font.configure(weight="bold")
+
+            # Configure a tag
+            content_text.tag_configure("bold", font=bold_font)
+
+            # Define Current tags
+            current_tags = content_text.tag_names("sel.first")
+
+            # If statment to see if tag has been set
+            if "bold" in current_tags:
+                content_text.tag_remove("bold", "sel.first", "sel.last")
+            else:
+                content_text.tag_add("bold", "sel.first", "sel.last")
+
+        except Exception:
+            pass
 
 
-# Print File Function
-def print_file():
-    # printer_name = win32print.GetDefaultPrinter()
-    # status_bar.config(text=printer_name)
+    # Italics Text
+    def italics_it():
+        # Create our font
+        try:
+            italics_font = font.Font(content_text, content_text.cget("font"))
+            italics_font.configure(slant="italic")
 
-    # Grab Filename
-    file_to_print = filedialog.askopenfilename(initialdir="C:/gui/", title="Open File", filetypes=(
-    ("Text Files", "*.txt"), ("HTML Files", "*.html"), ("Python Files", "*.py"), ("All Files", "*.*")))
+            # Configure a tag
+            content_text.tag_configure("italic", font=italics_font)
 
-    # Check to see if we grabbed a filename
-    if file_to_print:
-        # Print the file
-        #win32api.ShellExecute(0, "print", file_to_print, None, ".", 0)
-        pass
+            # Define Current tags
+            current_tags = content_text.tag_names("sel.first")
+
+            # If statment to see if tag has been set
+            if "italic" in current_tags:
+                content_text.tag_remove("italic", "sel.first", "sel.last")
+            else:
+                content_text.tag_add("italic", "sel.first", "sel.last")
+        except Exception:
+            pass
+
+    #def insertImage():
+     #   select_image = filedialog.askopenfilename(title="Select your image",filetypes=[("Image Files", "*.png"), ("Image Files", "*.jpg")])
+     #   global img
+     #   img = ImageTk.PhotoImage(file=select_image)
+     #   content_text.image_create(END, image=img)
+
+    imagelist = []
+
+    def insertImage():
+        select_image = filedialog.askopenfilename(title="Select your image",
+                                                  filetypes=[("Image Files", "*.png"), ("Image Files", "*.jpg")])
+        if select_image:
+            imagelist.append(ImageTk.PhotoImage(file=select_image))
+            content_text.image_create(END, image=imagelist[-1])
+
+    def insertCartoon():
+        try:
+            select_photo = filedialog.askopenfilename(title="Select you Photo",filetypes=[("Image Files", "*.png"), ("Image Files", "*.jpg")])
+
+            cartoon=cv.imread(select_photo)
+            gray_image=cv.cvtColor(cartoon, cv.COLOR_BGR2GRAY)
+            blur_image=cv.GaussianBlur(gray_image, (3,3),0)
+            edge_image=cv.adaptiveThreshold(blur_image,255, cv.ADAPTIVE_THRESH_MEAN_C, cv.THRESH_BINARY,5,3)
+
+            output=cv.bitwise_and(cartoon,cartoon,mask=edge_image)
+            cv.imshow(select_photo, output)
+            cv.waitKey(0)
+            if tkinter.messagebox.askyesno("Save", "Do you want to save your cartooned image?"):
+                input_file_name = tkinter.filedialog.asksaveasfilename(defaultextension=".png",filetypes=[("Image Files", "*.png"), ("Image Files", "*.jpg")])
+                if input_file_name:
+                    cv.imwrite(input_file_name, output)
+                    cv.destroyAllWindows()
+
+        except Exception:
+            pass
+
+    def overstrike():
+        """Toggles overstrike for selected text."""
+        try:
+            current_tags = content_text.tag_names("sel.first")
+            if "overstrike" in current_tags:
+                content_text.tag_remove("overstrike", "sel.first", "sel.last")
+            else:
+                content_text.tag_add("overstrike", "sel.first", "sel.last")
+                overstrike_font = Font(content_text, content_text.cget("font"))
+                overstrike_font.configure(overstrike=1)
+                content_text.tag_configure("overstrike", font=overstrike_font)
+        except:
+            pass
+    #ABOUT MENU
+
+    def display_about(event=None):
+        tkinter.messagebox.showinfo(
+            "About", PROGRAM_NAME + "\nA Simple Text Editor made in Python with Tkinter\n -Tanishka\n -Ishika Khandelwal")
 
 
-# Select all Text
-def select_all(e):
-    # Add sel tag to select all text
-    my_text.tag_add('sel', '1.0', 'end')
+    def display_help(event=None):
+        tkinter.messagebox.showinfo(
+            "Help", "This Text Editor works similar to any other editors.",
+            icon='question')
 
 
-# Clear All Text
-def clear_all():
-    my_text.delete(1.0, END)
+    def exit_editor(event=None):
+        if tkinter.messagebox.askyesno("Exit", "Are you sure you want to Quit?"):
+            root.destroy()
+
+    #adding Line Numbers Functionality
+    def get_line_numbers():
+        output = ''
+        if show_line_number.get():
+            row, col = content_text.index("end").split('.')
+            for i in range(1, int(row)):
+                output += str(i) + '\n'
+        return output
+
+    def on_content_changed(event=None):
+        update_line_numbers()
+        update_cursor()
+
+    def update_line_numbers(event=None):
+        line_numbers = get_line_numbers()
+        line_number_bar.config(state='normal')
+        line_number_bar.delete('1.0', 'end')
+        line_number_bar.insert('1.0', line_numbers)
+        line_number_bar.config(state='disabled')
+
+    # Adding Cursor Functionality
+    def show_cursor():
+        show_cursor_info_checked = show_cursor_info.get()
+        if show_cursor_info_checked:
+            cursor_info_bar.pack(expand='no', fill=None, side='right', anchor='se')
+        else:
+            cursor_info_bar.pack_forget()
 
 
-# Turn on Night Mode
-def night_on():
-    main_color = "#000000"
-    second_color = "#373737"
-    text_color = "green"
-
-    root.config(bg=main_color)
-    status_bar.config(bg=main_color, fg=text_color)
-    my_text.config(bg=second_color)
-    toolbar_frame.config(bg=main_color)
-    # toolbar buttons
-    bold_button.config(bg=second_color)
-    italics_button.config(bg=second_color)
-    redo_button.config(bg=second_color)
-    undo_button.config(bg=second_color)
-    color_text_button.config(bg=second_color)
-    # file menu colors
-    file_menu.config(bg=main_color, fg=text_color)
-    edit_menu.config(bg=main_color, fg=text_color)
-    color_menu.config(bg=main_color, fg=text_color)
-    options_menu.config(bg=main_color, fg=text_color)
+    def update_cursor(event=None):
+        row, col = content_text.index(INSERT).split('.')
+        line_num, col_num = str(int(row)), str(int(col) + 1)  # col starts at 0
+        infotext = "Line: {0} | Column: {1}".format(line_num, col_num)
+        cursor_info_bar.config(text=infotext)
 
 
-# Turn Off Night Mode:
-def night_off():
-    main_color = "SystemButtonFace"
-    second_color = "SystemButtonFace"
-    text_color = "black"
-
-    root.config(bg=main_color)
-    status_bar.config(bg=main_color, fg=text_color)
-    my_text.config(bg="white")
-    toolbar_frame.config(bg=main_color)
-    # toolbar buttons
-    bold_button.config(bg=second_color)
-    italics_button.config(bg=second_color)
-    redo_button.config(bg=second_color)
-    undo_button.config(bg=second_color)
-    color_text_button.config(bg=second_color)
-    # file menu colors
-    file_menu.config(bg=main_color, fg=text_color)
-    edit_menu.config(bg=main_color, fg=text_color)
-    color_menu.config(bg=main_color, fg=text_color)
-    options_menu.config(bg=main_color, fg=text_color)
+    #Adding Text Highlight Functionality
+    def highlight_line(interval=100):
+        content_text.tag_remove("active_line", 1.0, "end")
+        content_text.tag_add(
+            "active_line", "insert linestart", "insert lineend+1c")
+        content_text.after(interval, toggle_highlight)
 
 
-# Create a toolbar frame
-toolbar_frame = Frame(root)
-toolbar_frame.pack(fill=X)
+    def undo_highlight():
+        content_text.tag_remove("active_line", 1.0, "end")
 
-# Create Main Frame
-my_frame = Frame(root)
-my_frame.pack(pady=5)
 
-# Create our Scrollbar For the Text Box
-text_scroll = Scrollbar(my_frame)
-text_scroll.pack(side=RIGHT, fill=Y)
+    def toggle_highlight(event=None):
+        if to_highlight_line.get():
+            highlight_line()
+        else:
+            undo_highlight()
 
-# Horizontal Scrollbar
-hor_scroll = Scrollbar(my_frame, orient='horizontal')
-hor_scroll.pack(side=BOTTOM, fill=X)
 
-# Create Text Box
-my_text = Text(my_frame, width=97, height=25, font=("Helvetica", 16), selectbackground="yellow",
-               selectforeground="black", undo=True, yscrollcommand=text_scroll.set, wrap="none",
-               xscrollcommand=hor_scroll.set)
-my_text.pack()
+    #Adding Change Theme Functionality
+    def change_theme(event=None):
+        selected_theme = theme_choice.get()
+        fg_bg_colors = color_schemes.get(selected_theme)
+        foreground_color, background_color = fg_bg_colors.split('.')
+        content_text.config(
+            background=background_color, fg=foreground_color)
 
-# Configure our Scrollbar
-text_scroll.config(command=my_text.yview)
-hor_scroll.config(command=my_text.xview)
+    #pop-up menu
+    def show_popup_menu(event):
+        popup_menu.tk_popup(event.x_root, event.y_root)
 
-# Create Menu
-my_menu = Menu(root)
-root.config(menu=my_menu)
+    def keyboard():
+        kb = tkinter.Toplevel()
 
-# Add File Menu
-file_menu = Menu(my_menu, tearoff=False)
-my_menu.add_cascade(label="File", menu=file_menu)
-file_menu.add_command(label="New", command=new_file)
-file_menu.add_command(label="Open", command=open_file)
-file_menu.add_command(label="Save", command=save_file)
-file_menu.add_command(label="Save As...", command=save_as_file)
-file_menu.add_separator()
-file_menu.add_command(label="Print File", command=print_file)
-file_menu.add_separator()
-file_menu.add_command(label="Exit", command=root.quit)
+        buttons = [
+            '~', '`', '!', '@', '#', '$', '%', '^', '&', '*', '(', ')', '0', '_', '-',
+            'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', '\\', '7', '8', '9', 'BACK',
+            'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', '[', ']', '4', '5', '6'
+            , 'TAB',
+            'z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.', '?', '/', '1', '2', '3','ENTER', 'SPACE'
+        ]
 
-# Add Edit Menu
-edit_menu = Menu(my_menu, tearoff=False)
-my_menu.add_cascade(label="Edit", menu=edit_menu)
-edit_menu.add_command(label="Cut", command=lambda: cut_text(False), accelerator="(Ctrl+x)")
-edit_menu.add_command(label="Copy", command=lambda: copy_text(False), accelerator="(Ctrl+c)")
-edit_menu.add_command(label="Paste             ", command=lambda: paste_text(False), accelerator="(Ctrl+v)")
-edit_menu.add_separator()
-edit_menu.add_command(label="Undo", command=my_text.edit_undo, accelerator="(Ctrl+z)")
-edit_menu.add_command(label="Redo", command=my_text.edit_redo, accelerator="(Ctrl+y)")
-edit_menu.add_separator()
-edit_menu.add_command(label="Select All", command=lambda: select_all(True), accelerator="(Ctrl+a)")
-edit_menu.add_command(label="Clear", command=clear_all)
+        def select(value):
+            if value == "BACK":
+                # allText = entry.get()[:-1]
+                # entry.delete(0, tkinter,END)
+                # entry.insert(0,allText)
 
-# Add Color Menu
-color_menu = Menu(my_menu, tearoff=False)
-my_menu.add_cascade(label="Colors", menu=color_menu)
-color_menu.add_command(label="Selected Text", command=text_color)
-color_menu.add_command(label="All Text", command=all_text_color)
-color_menu.add_command(label="Background", command=bg_color)
+                #content_text.delete(len(content_text.get()) - 1, tkinter.END)
+                input_val = content_text.get("1.0", 'end-2c')
+                content_text.delete("1.0", "end")
+                content_text.insert("1.0", input_val, "end")
 
-# Add Options Menu
-options_menu = Menu(my_menu, tearoff=False)
-my_menu.add_cascade(label="Options", menu=options_menu)
-options_menu.add_command(label="Night Mode On", command=night_on)
-options_menu.add_command(label="Night Mode Off", command=night_off)
+            elif value == "SPACE":
+                content_text.insert(tkinter.END, ' ')
+            elif value == "TAB":
+                content_text.insert(tkinter.END, '\t')
+            elif value == "ENTER":
+                content_text.insert(tkinter.END, '\n')
+            else:
+                content_text.insert(tkinter.END, value)
 
-# Add Status Bar To Bottom Of App
-status_bar = Label(root, text='Ready        ', anchor=E)
-status_bar.pack(fill=X, side=BOTTOM, ipady=15)
+        def HosoPop():
+            varRow = 1
+            varColumn = 0
 
-# Edit Bindings
-root.bind('<Control-Key-x>', cut_text)
-root.bind('<Control-Key-c>', copy_text)
-root.bind('<Control-Key-v>', paste_text)
-# Select Binding
-root.bind('<Control-A>', select_all)
-root.bind('<Control-a>', select_all)
+            for button in buttons:
+                command = lambda x=button: select(x)
+                if button != "SPACE":
+                    but = Button(kb, text=button, width=5, bg="#D1E7E0", fg="#5B8340", highlightthickness=4,
+                                 activebackground="gray65", highlightcolor='red', activeforeground="#000000",
+                                 relief="raised", padx=8,
+                                 pady=4, bd=4, command=command)
+                    #buttonL[varRow - 1].append(but)
+                    but.grid(row=varRow, column=varColumn)
 
-# Create Buttons
+                if button == "SPACE":
+                    but = Button(kb, text=button, width=60, bg="#D1E7E0", fg="#5B8340", highlightthickness=4,
+                                 activebackground="gray65", highlightcolor='red', activeforeground="#000000",
+                                 relief="raised", padx=4,
+                                 pady=4, bd=4, command=command)
+                    #buttonL[varRow - 1].append(but)
+                    varRow += 1
+                    but.grid(row=varRow, columnspan=18)
 
-# Bold Button
-bold_button = Button(toolbar_frame, text="Bold", command=bold_it)
-bold_button.grid(row=0, column=0, sticky=W, padx=5, pady=5)
-# Italics Button
-italics_button = Button(toolbar_frame, text="Italics", command=italics_it)
-italics_button.grid(row=0, column=1, padx=5, pady=5)
+                varColumn += 1
+                if varColumn > 14:
+                    varColumn = 0
+                    varRow += 1
+                    #buttonL.append([])
 
-# Undo/Redo Buttons
-undo_button = Button(toolbar_frame, text="Undo", command=my_text.edit_undo)
-undo_button.grid(row=0, column=2, padx=5, pady=5)
-redo_button = Button(toolbar_frame, text="Redo", command=my_text.edit_redo)
-redo_button.grid(row=0, column=3, padx=5, pady=5)
+        def main():
+            kb.title("On-screen Keyboard")
+            #global keyboard_icon
+            kb.iconphoto(False,PhotoImage(file="icons/keyboard.png"))
+            kb.resizable(0, 0)
+            HosoPop()
 
-# Text Color
-color_text_button = Button(toolbar_frame, text="Text Color", command=text_color)
-color_text_button.grid(row=0, column=4, padx=5, pady=5)
+            kb.mainloop()
 
-root.mainloop()
+        main()
 
+    # ICONS for the compound menu
+    global new_file_icon
+    global open_file_icon
+    global save_file_icon
+    global cut_icon
+    global copy_icon
+    global paste_icon
+    global undo_icon
+    global redo_icon
+    global find_icon
+    global bold_icon
+    global italic_icon
+    new_file_icon = PhotoImage(file='icons/new_file.gif')
+    open_file_icon = PhotoImage(file='icons/open_file.gif')
+    save_file_icon = PhotoImage(file='icons/save.gif')
+    cut_icon = PhotoImage(file='icons/cut.gif')
+    copy_icon = PhotoImage(file='icons/copy.gif')
+    paste_icon = PhotoImage(file='icons/paste.gif')
+    undo_icon = PhotoImage(file='icons/undo.gif')
+    redo_icon = PhotoImage(file='icons/redo.gif')
+    find_icon = PhotoImage(file='icons/find_text.gif')
+
+
+    #MENU CODES GOES HERE
+    menu_bar = Menu(root) #menu begins
+
+    file_menu = Menu(menu_bar, tearoff=0)
+    file_menu.add_command(label='New', accelerator='Ctrl+N', compound='left', image=new_file_icon, underline=0, command=new_file)
+    file_menu.add_command(label='Open', accelerator='Ctrl+O', compound='left', image=open_file_icon, underline=0, command=open_file)
+    file_menu.add_command(label="Save", accelerator='Ctrl+S', compound='left', image=save_file_icon, underline=0, command=save)
+    file_menu.add_command(label="Save As", accelerator='Ctrl+Shift+S', compound='left', underline=0, command = save_as)
+    file_menu.add_separator()
+    file_menu.add_command(label="Compare File", command=compare_files)
+    file_menu.add_separator()
+    file_menu.add_command(label="Exit", accelerator='Alt+F4', compound='left', underline=0, command=exit_editor)
+    menu_bar.add_cascade(label='File', menu=file_menu)
+    # end of File Menu
+
+    edit_menu = Menu(menu_bar, tearoff=0)
+    edit_menu.add_command(label='Undo', accelerator='Ctrl + Z', compound='left', image=undo_icon, underline=0, command=undo)
+    edit_menu.add_command(label='Redo', accelerator='Ctrl+Y', compound='left', image=redo_icon, underline=0, command=redo)
+    edit_menu.add_separator()
+    edit_menu.add_command(label='Cut', accelerator='Ctrl+X', compound='left',  image=cut_icon, underline=0, command=cut)
+    edit_menu.add_command(label='Copy', accelerator='Ctrl+C', compound='left', image=copy_icon, underline=0, command=copy)
+    edit_menu.add_command(label='Paste', accelerator='Ctrl+V', compound='left',  image=paste_icon, underline=0, command=paste)
+    edit_menu.add_separator()
+    edit_menu.add_command(label='Find', accelerator='Ctrl+F', compound='left',  image=find_icon, underline=0, command=find_text)
+    edit_menu.add_separator()
+    edit_menu.add_command(label='Select All', accelerator='Ctrl+A', compound='left', underline=0, command=selectall)
+    menu_bar.add_cascade(label='Edit', menu=edit_menu)
+    #end of Edit Menu
+
+    insert_menu = Menu(menu_bar, tearoff=False)
+    menu_bar.add_cascade(label="Insert", menu=insert_menu)
+    insert_menu.add_command(label="Bold", command=bold_it, accelerator='Ctrl+B',compound='left', underline=0)
+    insert_menu.add_command(label="Italic", command=italics_it, accelerator='Ctrl+I',compound='left', underline=0)
+    insert_menu.add_separator()
+    insert_menu.add_command(label="Insert Image",compound='left',command=insertImage)
+
+    insert_menu.add_command(label="Add Date", command=addDate)
+    #end of Insert Menu
+
+    # Add Speech menu
+    speech_menu = Menu(menu_bar, tearoff=False)
+    menu_bar.add_cascade(label="Speech", menu=speech_menu)
+    speech_menu.add_command(label="Text to Speech", command=text_to_speech)
+    speech_menu.add_command(label="Import Audio", command=importAudioFlie)
+
+    view_menu = Menu(menu_bar, tearoff=0)
+    show_line_number=IntVar()
+    show_line_number.set(1)
+    view_menu.add_checkbutton(label="Show Line Number", variable=show_line_number)
+    show_cursor_info=IntVar()
+    show_cursor_info.set(1)
+    view_menu.add_checkbutton(label='Show Cursor Location at Bottom', variable=show_cursor_info, command=show_cursor)
+    to_highlight_line=IntVar()
+    view_menu.add_checkbutton(label='Highlight Current Line', variable=to_highlight_line, onvalue=1, offvalue=0,command=toggle_highlight)
+    view_menu.add_command(label="View Your Cartoon", compound='left', command=insertCartoon)
+    view_menu.add_separator()
+    themes_menu=Menu(menu_bar, tearoff=0)
+    view_menu.add_cascade(label='Themes', menu=themes_menu, command=change_theme)
+
+    ''' THEMES OPTIONS'''
+    color_schemes = {
+        'Default': '#000000.#FFFFFF',
+        'Greygarious': '#83406A.#D1D4D1',
+        'Aquamarine': '#5B8340.#D1E7E0',
+        'Bold Beige': '#4B4620.#FFF0E1',
+        'Cobalt Blue': '#ffffBB.#3333aa',
+        'Olive Green': '#D1E7E0.#5B8340',
+        'Night Mode': '#FFFFFF.#000000',
+    }
+
+    theme_choice=StringVar()
+    theme_choice.set('Default')
+    for k in sorted(color_schemes):
+        themes_menu.add_radiobutton(label=k, variable=theme_choice, command=change_theme)
+
+    menu_bar.add_cascade(label='View', menu=view_menu)
+
+
+    #start of About Menu
+    about_menu = Menu(menu_bar, tearoff=0)
+    menu_bar.add_cascade(label='About', menu=about_menu)
+    about_menu.add_command(label='About', underline=0, command=display_about)
+    about_menu.add_command(label='Help', underline=0, command=display_help)
+    #end of About Menu
+    root.config(menu=menu_bar)
+
+    #adding top shortcut bar and left line number bar
+    shortcut_bar=Frame(root, height=25)
+    shortcut_bar.pack(expand='no', fill='x')
+
+    #adding shortcut icons
+    icons=('new_file', 'open_file', 'save', 'cut', 'copy', 'paste','undo', 'redo', 'find_text')
+    for i, icon in enumerate(icons):
+        tool_bar_icon = PhotoImage(file='icons/{}.gif'.format(icon)).zoom(2,2)
+        cmd = eval(icon)
+        tool_bar = Button(shortcut_bar, image=tool_bar_icon, height=35,width=35, command=cmd,cursor="hand2")
+        tool_bar.image = tool_bar_icon
+        tool_bar.pack(side='left')
+
+    global keyboard_icon
+    keyboard_icon = PhotoImage(file='icons/keyboard.png')
+    keyboard_button= Button(shortcut_bar,image=keyboard_icon,height=35,width=35,command=keyboard, cursor="hand2")
+    keyboard_button.pack(side='left')
+
+    line_number_bar = Text(root, width=4, padx=3, takefocus=0, fg='white', border=0, background='#282828', state='disabled',  wrap='none')
+    line_number_bar.pack(side='left', fill='y')
+
+    #adding the main context Text widget and Scrollbar Widget
+    content_text = Text(root, wrap='word')
+    content_text.pack(expand='yes', fill='both')
+
+    scroll_bar = Scrollbar(content_text)
+    content_text.configure(yscrollcommand=scroll_bar.set)
+    scroll_bar.config(command=content_text.yview)
+    scroll_bar.pack(side='right', fill='y')
+
+    # addind cursor info label
+    cursor_info_bar = Label(content_text, text='Line: 1 | Column: 1')
+    cursor_info_bar.pack(expand='no', fill=None, side='right', anchor='se')
+
+    # setting up the pop-up menu
+    popup_menu = Menu(content_text,tearoff=0)
+    for i in ('cut', 'copy', 'paste', 'undo', 'redo'):
+        cmd = eval(i)
+        popup_menu.add_command(label=i, compound='left', command=cmd)
+    popup_menu.add_separator()
+    popup_menu.add_command(label='Select All', underline=7, command=selectall)
+    content_text.bind('<Button-3>', show_popup_menu)
+
+
+    #handling binding
+
+    content_text.bind('<Control-N>', new_file)
+    content_text.bind('<Control-n>', new_file)
+    content_text.bind('<Control-O>', open_file)
+    content_text.bind('<Control-o>', open_file)
+    content_text.bind('<Control-S>', save)
+    content_text.bind('<Control-s>', save)
+
+    content_text.bind('<Control-Y>',redo)
+    content_text.bind('<Control-y>',redo)
+    content_text.bind('<Control-A>',selectall)
+    content_text.bind('<Control-a>',selectall)
+    content_text.bind('<Control-F>',find_text)
+    content_text.bind('<Control-f>',find_text)
+    content_text.bind("<Control-B>",bold_it)
+    content_text.bind("<Control-b>",bold_it)
+    content_text.bind("<Control-I>",italics_it)
+    content_text.bind("<Control-i>",italics_it)
+
+    content_text.bind('<KeyPress-F1>', display_help)
+
+    content_text.bind('<Any-KeyPress>', on_content_changed)
+    content_text.tag_configure('active_line', background='ivory2')
+
+    content_text.bind('<Button-3>', show_popup_menu)
+    content_text.focus_set()
+
+
+    #END OF MENU
+
+    root.protocol('WM_DELETE_WINDOW', exit_editor)
+
+img=PhotoImage(file="icons1/enter2.png")
+enterButton= Button(splashFrame,image=img,font=("Helvetica", 16,"bold"),borderwidth=0,relief=GROOVE,bg="#29648A",command=mainWindow,cursor="hand2")
+enterButton.pack(side=BOTTOM,anchor=S,pady=10)
+
+mainloop()
