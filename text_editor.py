@@ -331,7 +331,7 @@ def mainWindow():
 
 
     def exit_editor(event=None):
-        if tkinter.messagebox.askokcancel("Exit", "Are you sure you want to Quit?"):
+        if tkinter.messagebox.askyesno("Exit", "Are you sure you want to Quit?"):
             root.destroy()
 
     #adding Line Numbers Functionality
@@ -405,11 +405,11 @@ def mainWindow():
         kb = tkinter.Toplevel()
 
         buttons = [
-            '~', '`', '!', '@', '#', '$', '%', '^', '&', '*', '(', ')', '-', '_', 'L',
+            '~', '`', '!', '@', '#', '$', '%', '^', '&', '*', '(', ')', '0', '_', '-',
             'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', '\\', '7', '8', '9', 'BACK',
             'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', '[', ']', '4', '5', '6'
-            , 'SHIFT',
-            'z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.', '?', '/', '1', '2', '3', 'SPACE',
+            , 'TAB',
+            'z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.', '?', '/', '1', '2', '3','ENTER', 'SPACE'
         ]
 
         def select(value):
@@ -418,44 +418,48 @@ def mainWindow():
                 # entry.delete(0, tkinter,END)
                 # entry.insert(0,allText)
 
-                content_text.delete(len(entry.get()) - 1, tkinter.END)
+                #content_text.delete(len(content_text.get()) - 1, tkinter.END)
+                input_val = content_text.get("1.0", 'end-2c')
+                content_text.delete("1.0", "end")
+                content_text.insert("1.0", input_val, "end")
 
             elif value == "SPACE":
                 content_text.insert(tkinter.END, ' ')
-            elif value == " Tab ":
-                content_text.insert(tkinter.END, '    ')
+            elif value == "TAB":
+                content_text.insert(tkinter.END, '\t')
+            elif value == "ENTER":
+                content_text.insert(tkinter.END, '\n')
             else:
                 content_text.insert(tkinter.END, value)
 
         def HosoPop():
-            varRow = 2
+            varRow = 1
             varColumn = 0
 
             for button in buttons:
-
                 command = lambda x=button: select(x)
+                if button != "SPACE":
+                    but = Button(kb, text=button, width=5, bg="#D1E7E0", fg="#5B8340", highlightthickness=4,
+                                 activebackground="gray65", highlightcolor='red', activeforeground="#000000",
+                                 relief="raised", padx=8,
+                                 pady=4, bd=4, command=command)
+                    #buttonL[varRow - 1].append(but)
+                    but.grid(row=varRow, column=varColumn)
 
-                if button == "SPACE" or button == "SHIFT" or button == "BACK":
-                    tkinter.Button(kb, text=button, width=6, bg="#3c4987", fg="#ffffff",
-                                   activebackground="#ffffff", activeforeground="#3c4987", relief='raised', padx=1,
-                                   pady=1, bd=1, command=command).grid(row=varRow, column=varColumn)
-
-                else:
-                    tkinter.Button(kb, text=button, width=4, bg="#3c4987", fg="#ffffff",
-                                   activebackground="#ffffff", activeforeground="#3c4987", relief='raised', padx=1,
-                                   pady=1, bd=1, command=command).grid(row=varRow, column=varColumn)
+                if button == "SPACE":
+                    but = Button(kb, text=button, width=60, bg="#D1E7E0", fg="#5B8340", highlightthickness=4,
+                                 activebackground="gray65", highlightcolor='red', activeforeground="#000000",
+                                 relief="raised", padx=4,
+                                 pady=4, bd=4, command=command)
+                    #buttonL[varRow - 1].append(but)
+                    varRow += 1
+                    but.grid(row=varRow, columnspan=18)
 
                 varColumn += 1
-
-                if varColumn > 14 and varRow == 2:
+                if varColumn > 14:
                     varColumn = 0
                     varRow += 1
-                if varColumn > 14 and varRow == 3:
-                    varColumn = 0
-                    varRow += 1
-                if varColumn > 14 and varRow == 4:
-                    varColumn = 0
-                    varRow += 1
+                    #buttonL.append([])
 
         def main():
             kb.title("On-screen Keyboard")
@@ -478,6 +482,8 @@ def mainWindow():
     global undo_icon
     global redo_icon
     global find_icon
+    global bold_icon
+    global italic_icon
     new_file_icon = PhotoImage(file='icons/new_file.gif')
     open_file_icon = PhotoImage(file='icons/open_file.gif')
     save_file_icon = PhotoImage(file='icons/save.gif')
