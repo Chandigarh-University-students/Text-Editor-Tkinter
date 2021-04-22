@@ -1,4 +1,5 @@
 from tkinter import *
+import tkinter
 import os
 import tkinter.filedialog
 import tkinter.messagebox
@@ -9,7 +10,7 @@ import pyttsx3
 import time
 from tkinter.font import Font, families
 from tkinter import font
-from PIL import Image
+from PIL import Image, ImageTk
 import cv2 as cv
 
 
@@ -224,7 +225,7 @@ def mainWindow():
         # Create our font
         try:
             if e:
-                content_text.event_generate("<<Cut>>")
+                content_text.event_generate("<<Bold>>")
                 on_content_changed()
                 return "break"
             bold_font = font.Font(content_text, content_text.cget("font"))
@@ -267,12 +268,20 @@ def mainWindow():
         except Exception:
             pass
 
+    #def insertImage():
+     #   select_image = filedialog.askopenfilename(title="Select your image",filetypes=[("Image Files", "*.png"), ("Image Files", "*.jpg")])
+     #   global img
+     #   img = ImageTk.PhotoImage(file=select_image)
+     #   content_text.image_create(END, image=img)
+
+    imagelist = []
+
     def insertImage():
-        select_image = filedialog.askopenfilename(title="Select your image",filetypes=[("Image Files", "*.png"), ("Image Files", "*.jpg")])
-        global img
-        img = PhotoImage(file=select_image)
-        content_text.image_create(END, image=img)
-        #content_text.window_create(tk.END, window=tk.Label(text, image=select_image))  # Example 2
+        select_image = filedialog.askopenfilename(title="Select your image",
+                                                  filetypes=[("Image Files", "*.png"), ("Image Files", "*.jpg")])
+        if select_image:
+            imagelist.append(ImageTk.PhotoImage(file=select_image))
+            content_text.image_create(END, image=imagelist[-1])
 
     def insertCartoon():
         try:
@@ -291,7 +300,7 @@ def mainWindow():
                 if input_file_name:
                     cv.imwrite(input_file_name, output)
                     cv.destroyAllWindows()
-                
+
         except Exception:
             pass
 
@@ -392,7 +401,72 @@ def mainWindow():
     def show_popup_menu(event):
         popup_menu.tk_popup(event.x_root, event.y_root)
 
+    def keyboard():
+        kb = tkinter.Toplevel()
 
+        buttons = [
+            '~', '`', '!', '@', '#', '$', '%', '^', '&', '*', '(', ')', '-', '_', 'L',
+            'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', '\\', '7', '8', '9', 'BACK',
+            'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', '[', ']', '4', '5', '6'
+            , 'SHIFT',
+            'z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.', '?', '/', '1', '2', '3', 'SPACE',
+        ]
+
+        def select(value):
+            if value == "BACK":
+                # allText = entry.get()[:-1]
+                # entry.delete(0, tkinter,END)
+                # entry.insert(0,allText)
+
+                content_text.delete(len(entry.get()) - 1, tkinter.END)
+
+            elif value == "SPACE":
+                content_text.insert(tkinter.END, ' ')
+            elif value == " Tab ":
+                content_text.insert(tkinter.END, '    ')
+            else:
+                content_text.insert(tkinter.END, value)
+
+        def HosoPop():
+            varRow = 2
+            varColumn = 0
+
+            for button in buttons:
+
+                command = lambda x=button: select(x)
+
+                if button == "SPACE" or button == "SHIFT" or button == "BACK":
+                    tkinter.Button(kb, text=button, width=6, bg="#3c4987", fg="#ffffff",
+                                   activebackground="#ffffff", activeforeground="#3c4987", relief='raised', padx=1,
+                                   pady=1, bd=1, command=command).grid(row=varRow, column=varColumn)
+
+                else:
+                    tkinter.Button(kb, text=button, width=4, bg="#3c4987", fg="#ffffff",
+                                   activebackground="#ffffff", activeforeground="#3c4987", relief='raised', padx=1,
+                                   pady=1, bd=1, command=command).grid(row=varRow, column=varColumn)
+
+                varColumn += 1
+
+                if varColumn > 14 and varRow == 2:
+                    varColumn = 0
+                    varRow += 1
+                if varColumn > 14 and varRow == 3:
+                    varColumn = 0
+                    varRow += 1
+                if varColumn > 14 and varRow == 4:
+                    varColumn = 0
+                    varRow += 1
+
+        def main():
+            kb.title("On-screen Keyboard")
+            #global keyboard_icon
+            kb.iconphoto(False,PhotoImage(file="icons/keyboard.png"))
+            kb.resizable(0, 0)
+            HosoPop()
+
+            kb.mainloop()
+
+        main()
 
     # ICONS for the compound menu
     global new_file_icon
@@ -514,6 +588,10 @@ def mainWindow():
         tool_bar.image = tool_bar_icon
         tool_bar.pack(side='left')
 
+    global keyboard_icon
+    keyboard_icon = PhotoImage(file='icons/keyboard.png')
+    keyboard_button= Button(shortcut_bar,image=keyboard_icon,height=35,width=35,command=keyboard, cursor="hand2")
+    keyboard_button.pack(side='left')
 
     line_number_bar = Text(root, width=4, padx=3, takefocus=0, fg='white', border=0, background='#282828', state='disabled',  wrap='none')
     line_number_bar.pack(side='left', fill='y')
@@ -532,7 +610,7 @@ def mainWindow():
     cursor_info_bar.pack(expand='no', fill=None, side='right', anchor='se')
 
     # setting up the pop-up menu
-    popup_menu = Menu(content_text)
+    popup_menu = Menu(content_text,tearoff=0)
     for i in ('cut', 'copy', 'paste', 'undo', 'redo'):
         cmd = eval(i)
         popup_menu.add_command(label=i, compound='left', command=cmd)
