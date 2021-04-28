@@ -6,6 +6,8 @@ import tkinter.messagebox
 from tkinter import messagebox
 from difflib import SequenceMatcher
 from tkinter import filedialog
+from tkinter import colorchooser
+import speech_recognition as sr
 import pyttsx3
 import time
 from tkinter.font import Font, families
@@ -94,12 +96,15 @@ def mainWindow():
 
 
     def save(event=None):
-        global file_name
-        if not file_name:
+        try:
+            global file_name
+            if not file_name:
+                save_as()
+            else:
+                write_to_file(file_name)
+            return "break"
+        except Exception:
             save_as()
-        else:
-            write_to_file(file_name)
-        return "break"
 
     # Compare files
     def compare_files():
@@ -144,6 +149,7 @@ def mainWindow():
 
     def find_text(event=None):
         search_toplevel = Toplevel(root)
+        search_toplevel.iconphoto(False, PhotoImage(file="icons/find_text.png"))
         search_toplevel.title('Find Text')
         search_toplevel.transient(root)
         search_toplevel.resizable(False, False)
@@ -195,6 +201,38 @@ def mainWindow():
 
         # run and wait method, it processes the voice commands.
         engine.runAndWait()
+
+    def speech_to_text():
+        r = sr.Recognizer()
+
+        def SpeakText(command):
+            # initialize the engine
+            engine = pyttsx3.init()
+            engine.say(command)
+            engine.runAndWait()
+
+        # Loop
+        while (1):
+            try:
+                # use the microphone for input
+                with sr.Microphone() as source2:
+                    # wait for the recognizer to adjust the energy threshold
+                    r.adjust_for_ambient_noise(source2, duration=0.3)
+
+                    # listen to the input from user
+                    print("Listening ...")
+                    audio2 = r.listen(source2)
+
+                    # using google to recognize audio
+                    MyText = r.recognize_google(audio2)
+                    MyText = MyText.lower()
+
+                    print("Did You Say " + MyText)
+                    SpeakText(MyText)
+            except sr.RequestError as e:
+                print("Could Not request Result; {0}".format(e))
+            except sr.UnknownValueError:
+                print("Unknown Error occured")
 
     def importAudioFlie():
 
@@ -285,7 +323,7 @@ def mainWindow():
 
     def insertCartoon():
         try:
-            select_photo = filedialog.askopenfilename(title="Select you Photo",filetypes=[("Image Files", "*.png"), ("Image Files", "*.jpg")])
+            select_photo = filedialog.askopenfilename(title="Select Your Photo",filetypes=[("Image Files", "*.png"), ("Image Files", "*.jpg")])
 
             cartoon=cv.imread(select_photo)
             gray_image=cv.cvtColor(cartoon, cv.COLOR_BGR2GRAY)
@@ -304,19 +342,34 @@ def mainWindow():
         except Exception:
             pass
 
-    def overstrike():
-        """Toggles overstrike for selected text."""
-        try:
-            current_tags = content_text.tag_names("sel.first")
-            if "overstrike" in current_tags:
-                content_text.tag_remove("overstrike", "sel.first", "sel.last")
-            else:
-                content_text.tag_add("overstrike", "sel.first", "sel.last")
-                overstrike_font = Font(content_text, content_text.cget("font"))
-                overstrike_font.configure(overstrike=1)
-                content_text.tag_configure("overstrike", font=overstrike_font)
-        except:
-            pass
+    def SetFontSize():
+        Font[1] = size_var.get()
+        content_text.config(font=Font)
+
+    def SetFontFace():
+        Font[0] = face_var.get()
+        content_text.config(font=Font)
+    def text_color():
+        # Pick a color
+        my_color = colorchooser.askcolor()[1]
+        if my_color:
+            try:
+                # Create our font
+                color_font = font.Font(content_text, content_text.cget("font"))
+
+                # Configure a tag
+                content_text.tag_configure("colored", font=color_font, foreground=my_color)
+
+                # Define Current tags
+                current_tags = content_text.tag_names("sel.first")
+
+                # If statment to see if tag has been set
+                if "colored" in current_tags:
+                    content_text.tag_remove("colored", "sel.first", "sel.last")
+                else:
+                    content_text.tag_add("colored", "sel.first", "sel.last")
+            except Exception:
+                content_text.config(fg=my_color)
     #ABOUT MENU
 
     def display_about(event=None):
@@ -402,16 +455,17 @@ def mainWindow():
         popup_menu.tk_popup(event.x_root, event.y_root)
 
     def keyboard():
-        kb = tkinter.Toplevel()
-
+        kb = tkinter.Toplevel(root)
+        global buttons
         buttons = [
             '~', '`', '!', '@', '#', '$', '%', '^', '&', '*', '(', ')', '0', '_', '-',
             'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', '\\', '7', '8', '9', 'BACK',
             'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', '[', ']', '4', '5', '6'
             , 'TAB',
-            'z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.', '?', '/', '1', '2', '3','ENTER', 'SPACE'
+            'z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.', '?', '/', '1', '2', '3','ENTER', 'SPACE', 'CAPS'
         ]
-
+        global caps_status
+        caps_status= False
         def select(value):
             if value == "BACK":
                 # allText = entry.get()[:-1]
@@ -429,17 +483,42 @@ def mainWindow():
                 content_text.insert(tkinter.END, '\t')
             elif value == "ENTER":
                 content_text.insert(tkinter.END, '\n')
+            elif value == "CAPS":
+                global caps_status
+                global buttons
+                if caps_status == True:
+                    caps_status = False
+                    buttons = [
+                        '~', '`', '!', '@', '#', '$', '%', '^', '&', '*', '(', ')', '0', '_', '-',
+                        'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', '\\', '7', '8', '9', 'BACK',
+                        'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', '[', ']', '4', '5', '6'
+                        , 'TAB',
+                        'z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.', '?', '/', '1', '2', '3', 'ENTER', 'SPACE', 'CAPS'
+                    ]
+                    HosoPop()
+                elif caps_status == False:
+                    caps_status = True
+                    buttons = [
+                        '~', '`', '!', '@', '#', '$', '%', '^', '&', '*', '(', ')', '0', '_', '-',
+                        'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', '\\', '7', '8', '9', 'BACK',
+                        'A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', '[', ']', '4', '5', '6'
+                        , 'TAB',
+                        'Z', 'X', 'C', 'V', 'B', 'N', 'M', ',', '.', '?', '/', '1', '2', '3', 'ENTER', 'SPACE', 'CAPS'
+                    ]
+                    HosoPop()
+
             else:
                 content_text.insert(tkinter.END, value)
 
         def HosoPop():
             varRow = 1
             varColumn = 0
+            Font_tuple = ("Helvetica", 10, "bold")
 
             for button in buttons:
                 command = lambda x=button: select(x)
                 if button != "SPACE":
-                    but = Button(kb, text=button, width=5, bg="#D1E7E0", fg="#5B8340", highlightthickness=4,
+                    but = Button(kb, text=button,font=Font_tuple, width=5, bg="#D1E7E0", fg="#5B8340", highlightthickness=4,
                                  activebackground="gray65", highlightcolor='red', activeforeground="#000000",
                                  relief="raised", padx=8,
                                  pady=4, bd=4, command=command)
@@ -447,7 +526,7 @@ def mainWindow():
                     but.grid(row=varRow, column=varColumn)
 
                 if button == "SPACE":
-                    but = Button(kb, text=button, width=60, bg="#D1E7E0", fg="#5B8340", highlightthickness=4,
+                    but = Button(kb, text=button,font=Font_tuple, width=60, bg="#D1E7E0", fg="#5B8340", highlightthickness=4,
                                  activebackground="gray65", highlightcolor='red', activeforeground="#000000",
                                  relief="raised", padx=4,
                                  pady=4, bd=4, command=command)
@@ -484,15 +563,41 @@ def mainWindow():
     global find_icon
     global bold_icon
     global italic_icon
-    new_file_icon = PhotoImage(file='icons/new_file.gif')
-    open_file_icon = PhotoImage(file='icons/open_file.gif')
-    save_file_icon = PhotoImage(file='icons/save.gif')
-    cut_icon = PhotoImage(file='icons/cut.gif')
-    copy_icon = PhotoImage(file='icons/copy.gif')
-    paste_icon = PhotoImage(file='icons/paste.gif')
-    undo_icon = PhotoImage(file='icons/undo.gif')
-    redo_icon = PhotoImage(file='icons/redo.gif')
-    find_icon = PhotoImage(file='icons/find_text.gif')
+    global select_icon
+    global insert_image_icon
+    global add_date_icon
+    global cartoon_icon
+    global text_to_speech_icon
+    global speech_to_text_icon
+    global import_audio_icon
+    global theme_icon
+    global compare_icon
+    global exit_icon
+    global about_icon
+    global help_icon
+    new_file_icon = PhotoImage(file='icons/new_file.png')
+    open_file_icon = PhotoImage(file='icons/open_file.png')
+    save_file_icon = PhotoImage(file='icons/save.png')
+    cut_icon = PhotoImage(file='icons/cut.png')
+    copy_icon = PhotoImage(file='icons/copy.png')
+    paste_icon = PhotoImage(file='icons/paste.png')
+    undo_icon = PhotoImage(file='icons/undo.png')
+    redo_icon = PhotoImage(file='icons/redo.png')
+    find_icon = PhotoImage(file='icons/find_text.png')
+    bold_icon = PhotoImage(file='icons/font-style-bold.png')
+    italic_icon = PhotoImage(file='icons/italic.png')
+    select_icon = PhotoImage(file='icons/cursor.png')
+    insert_image_icon = PhotoImage(file='icons/insert image.png')
+    add_date_icon = PhotoImage(file='icons/date.png')
+    cartoon_icon = PhotoImage(file='icons/cartoons-character.png')
+    text_to_speech_icon = PhotoImage(file='icons/text to sppech.png')
+    speech_to_text_icon = PhotoImage(file='icons/speech.png')
+    import_audio_icon = PhotoImage(file='icons/import audio.png')
+    theme_icon = PhotoImage(file='icons/theme.png')
+    compare_icon = PhotoImage(file='icons/compare.png')
+    exit_icon = PhotoImage(file='icons/exit.png')
+    about_icon = PhotoImage(file='icons/about.png')
+    help_icon = PhotoImage(file='icons/help.png')
 
 
     #MENU CODES GOES HERE
@@ -502,11 +607,11 @@ def mainWindow():
     file_menu.add_command(label='New', accelerator='Ctrl+N', compound='left', image=new_file_icon, underline=0, command=new_file)
     file_menu.add_command(label='Open', accelerator='Ctrl+O', compound='left', image=open_file_icon, underline=0, command=open_file)
     file_menu.add_command(label="Save", accelerator='Ctrl+S', compound='left', image=save_file_icon, underline=0, command=save)
-    file_menu.add_command(label="Save As", accelerator='Ctrl+Shift+S', compound='left', underline=0, command = save_as)
+    file_menu.add_command(label="Save As", accelerator='Ctrl+Shift+S',image=save_file_icon, compound='left', underline=0, command = save_as)
     file_menu.add_separator()
-    file_menu.add_command(label="Compare File", command=compare_files)
+    file_menu.add_command(label="Compare File",image=compare_icon,compound='left', command=compare_files)
     file_menu.add_separator()
-    file_menu.add_command(label="Exit", accelerator='Alt+F4', compound='left', underline=0, command=exit_editor)
+    file_menu.add_command(label="Exit", accelerator='Alt+F4',image=exit_icon, compound='left', underline=0, command=exit_editor)
     menu_bar.add_cascade(label='File', menu=file_menu)
     # end of File Menu
 
@@ -520,25 +625,26 @@ def mainWindow():
     edit_menu.add_separator()
     edit_menu.add_command(label='Find', accelerator='Ctrl+F', compound='left',  image=find_icon, underline=0, command=find_text)
     edit_menu.add_separator()
-    edit_menu.add_command(label='Select All', accelerator='Ctrl+A', compound='left', underline=0, command=selectall)
+    edit_menu.add_command(label='Select All',image=select_icon, accelerator='Ctrl+A', compound='left', underline=0, command=selectall)
     menu_bar.add_cascade(label='Edit', menu=edit_menu)
     #end of Edit Menu
 
     insert_menu = Menu(menu_bar, tearoff=False)
     menu_bar.add_cascade(label="Insert", menu=insert_menu)
-    insert_menu.add_command(label="Bold", command=bold_it, accelerator='Ctrl+B',compound='left', underline=0)
-    insert_menu.add_command(label="Italic", command=italics_it, accelerator='Ctrl+I',compound='left', underline=0)
+    insert_menu.add_command(label="Bold",image=bold_icon, command=bold_it, accelerator='Ctrl+B',compound='left', underline=0)
+    insert_menu.add_command(label="Italic",image=italic_icon, command=italics_it, accelerator='Ctrl+I',compound='left', underline=0)
     insert_menu.add_separator()
-    insert_menu.add_command(label="Insert Image",compound='left',command=insertImage)
-
-    insert_menu.add_command(label="Add Date", command=addDate)
+    insert_menu.add_command(label="Insert Image",image=insert_image_icon,compound='left',command=insertImage)
+    insert_menu.add_separator()
+    insert_menu.add_command(label="Add Date",image=add_date_icon,compound='left', command=addDate)
     #end of Insert Menu
 
     # Add Speech menu
     speech_menu = Menu(menu_bar, tearoff=False)
     menu_bar.add_cascade(label="Speech", menu=speech_menu)
-    speech_menu.add_command(label="Text to Speech", command=text_to_speech)
-    speech_menu.add_command(label="Import Audio", command=importAudioFlie)
+    speech_menu.add_command(label="Text to Speech",image=text_to_speech_icon,compound='left', command=text_to_speech)
+    speech_menu.add_command(label="Speech to Text",image=speech_to_text_icon,compound='left', command=speech_to_text)
+    speech_menu.add_command(label="Import Audio",image=import_audio_icon,compound='left', command=importAudioFlie)
 
     view_menu = Menu(menu_bar, tearoff=0)
     show_line_number=IntVar()
@@ -549,10 +655,10 @@ def mainWindow():
     view_menu.add_checkbutton(label='Show Cursor Location at Bottom', variable=show_cursor_info, command=show_cursor)
     to_highlight_line=IntVar()
     view_menu.add_checkbutton(label='Highlight Current Line', variable=to_highlight_line, onvalue=1, offvalue=0,command=toggle_highlight)
-    view_menu.add_command(label="View Your Cartoon", compound='left', command=insertCartoon)
+    view_menu.add_command(label="View Your Cartoon",image=cartoon_icon, compound='left', command=insertCartoon)
     view_menu.add_separator()
     themes_menu=Menu(menu_bar, tearoff=0)
-    view_menu.add_cascade(label='Themes', menu=themes_menu, command=change_theme)
+    view_menu.add_cascade(label='Themes',image=theme_icon,compound='left', menu=themes_menu, command=change_theme)
 
     ''' THEMES OPTIONS'''
     color_schemes = {
@@ -571,13 +677,35 @@ def mainWindow():
         themes_menu.add_radiobutton(label=k, variable=theme_choice, command=change_theme)
 
     menu_bar.add_cascade(label='View', menu=view_menu)
+    #end of view menu
+
+    Font = ["Arial", 12]
+    font_sizes = [10,11,12,14,16,18,20]
+    font_faces = ["Arial", "Times New Roman", "Helvetica", "Courier", "Star Wars", "Comic Sans MS", "Bahnschrift"]
+    font_menu = Menu(menu_bar, tearoff=0)
+    menu_bar.add_cascade(label='Font', menu=font_menu)
+    font_size = Menu(menu_bar, tearoff=0)
+    font_face = Menu(menu_bar, tearoff=0)
+    font_menu.add_cascade(label='Font Size', compound='left', menu=font_size)
+    font_menu.add_cascade(label='Font Face', compound='left', menu=font_face)
+    font_menu.add_command(label='Font Color', compound='left', command=text_color)
+    size_var = IntVar()
+    size_var.set(12)
+    face_var = StringVar()
+    face_var.set("Arial")
+    for k in sorted(font_sizes):
+        font_size.add_radiobutton(label=k,compound='left',variable=size_var, command=SetFontSize)
+
+    for j in sorted(font_faces):
+        font_face.add_radiobutton(label=j,compound='left',variable=face_var, command=SetFontFace)
+
 
 
     #start of About Menu
     about_menu = Menu(menu_bar, tearoff=0)
     menu_bar.add_cascade(label='About', menu=about_menu)
-    about_menu.add_command(label='About', underline=0, command=display_about)
-    about_menu.add_command(label='Help', underline=0, command=display_help)
+    about_menu.add_command(label='About',image=about_icon,compound='left', underline=0, command=display_about)
+    about_menu.add_command(label='Help', underline=0,image=help_icon,compound='left', command=display_help)
     #end of About Menu
     root.config(menu=menu_bar)
 
@@ -588,22 +716,23 @@ def mainWindow():
     #adding shortcut icons
     icons=('new_file', 'open_file', 'save', 'cut', 'copy', 'paste','undo', 'redo', 'find_text')
     for i, icon in enumerate(icons):
-        tool_bar_icon = PhotoImage(file='icons/{}.gif'.format(icon)).zoom(2,2)
+        tool_bar_icon = PhotoImage(file='icons/{}.png'.format(icon)).zoom(2,2)
         cmd = eval(icon)
-        tool_bar = Button(shortcut_bar, image=tool_bar_icon, height=35,width=35, command=cmd,cursor="hand2")
+        tool_bar = Button(shortcut_bar, image=tool_bar_icon, height=30,width=30, command=cmd,cursor="hand2")
         tool_bar.image = tool_bar_icon
         tool_bar.pack(side='left')
 
     global keyboard_icon
     keyboard_icon = PhotoImage(file='icons/keyboard.png')
-    keyboard_button= Button(shortcut_bar,image=keyboard_icon,height=35,width=35,command=keyboard, cursor="hand2")
+    keyboard_button= Button(shortcut_bar,image=keyboard_icon,height=30,width=30,command=keyboard, cursor="hand2")
     keyboard_button.pack(side='left')
 
     line_number_bar = Text(root, width=4, padx=3, takefocus=0, fg='white', border=0, background='#282828', state='disabled',  wrap='none')
     line_number_bar.pack(side='left', fill='y')
 
     #adding the main context Text widget and Scrollbar Widget
-    content_text = Text(root, wrap='word')
+
+    content_text = Text(root, wrap='word',font=Font)
     content_text.pack(expand='yes', fill='both')
 
     scroll_bar = Scrollbar(content_text)
@@ -658,7 +787,7 @@ def mainWindow():
 
     root.protocol('WM_DELETE_WINDOW', exit_editor)
 
-img=PhotoImage(file="icons1/enter2.png")
+img=PhotoImage(file="icons/enter.png")
 enterButton= Button(splashFrame,image=img,font=("Helvetica", 16,"bold"),borderwidth=0,relief=GROOVE,bg="#29648A",command=mainWindow,cursor="hand2")
 enterButton.pack(side=BOTTOM,anchor=S,pady=10)
 
