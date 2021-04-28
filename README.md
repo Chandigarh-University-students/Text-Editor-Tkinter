@@ -14,3 +14,7 @@ This is a text editor programmed in tkinter(python)
 ![s6](https://github.com/tanishka1411/Tkinter-Notebook/blob/main/images/6.png) 
 <br><h5>About</h5>
 ![s7](https://github.com/tanishka1411/Tkinter-Notebook/blob/main/images/7.png)
+
+
+# Contributing
+Pull requests are welcome. If someone wants to contribute to this project can fork and add the Functionalities.
